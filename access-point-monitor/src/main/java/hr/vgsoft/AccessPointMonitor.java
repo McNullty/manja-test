@@ -1,31 +1,33 @@
 package hr.vgsoft;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 
 public class AccessPointMonitor {
-    public static void main( String[] args ) throws InterruptedException {
-        if (args.length != 1) {
+    public static void main( String[] args ) throws InterruptedException, IOException {
+        if (args.length != 2) {
             System.err.println(
-                "Usage: java -jar access-point-monitor <port number>");
+                "Usage: java -jar access-point-monitor <port number> <path to file>");
             System.exit(1);
         }
 
         int portNumber = Integer.parseInt(args[0]);
-        final Connection connection = new Connection(portNumber);
+        String filePath = args[1];
 
-        try {
-            BufferedReader stdIn = new BufferedReader(
-                    new InputStreamReader(System.in));
-            System.out.println("Connection established on port: " + portNumber);
-            String userInput;
-            while ((userInput = stdIn.readLine()) != null) {
-                System.out.println("Sending line: " + userInput);
-                connection.sendMessage(userInput);
+        final Connection connection = new Connection(portNumber);
+        System.out.println("Connection established on port: " + portNumber);
+
+        final FileMonitor fileMonitor = new FileMonitor(filePath);
+
+        final AccessPointFileParser accessPointFileParser = new AccessPointFileParser(filePath);
+        AccessPoints oldAccessPoints = accessPointFileParser.getData();
+        while(fileMonitor.monitor()) {
+            AccessPoints newAccessPoints = accessPointFileParser.getData();
+
+            for (String message : CompareAccessLists.compare(oldAccessPoints, newAccessPoints)) {
+                connection.sendMessage(message);
             }
-        } catch (IOException e) {
-            System.out.println("Error in system input");
+            
+            oldAccessPoints = newAccessPoints;
         }
     }
 }

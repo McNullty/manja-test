@@ -34,6 +34,10 @@ public class Connection {
   }
 
   public void sendMessage(String message) {
+    if (message == null) {
+      return;
+    }
+
     out.println(message);
   }
 
